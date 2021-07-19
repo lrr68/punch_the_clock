@@ -3,10 +3,10 @@
 #-Keeps track of the time i have been working.
 #-Uses the -i sed GNU extension
 
-#TIMEFILE="$HOME/.time/workhours.csv"
-TIMEFILE="$HOME/.time/ponto.csv"
-#HEADER="day, login time, pauses (in minutes), logout time, extra hours, worked hours"
-HEADER="dia, hora entrada, pausas (em minutos), hora saida, horas extras, horas trabalhadas"
+# Script capable of doing operations with date and time
+DATEMATHICS="date_time.sh"
+TIMEFILE="$HOME/.time/workhours.csv"
+HEADER="day, login time, pauses (in minutes), logout time, extra hours, worked hours"
 DATE=$(date +%Y-%m-%d)
 TIME=""
 
@@ -15,11 +15,18 @@ gettimeworked()
 	TODAY=$(grep -r "^$DATE" $TIMEFILE)
 	LOGINTIME=$(echo $TODAY | awk '{print $2}')
 	LOGINTIME=${LOGINTIME%,}
-	TIMEWORKED=$(data_hora -s $TIME $LOGINTIME)
+	TIMEWORKED=$($DATEMATHICS -s $TIME $LOGINTIME)
 	PAUSES=$(echo $TODAY | awk '{print $3}')
 	PAUSES=${PAUSES%,}
 
 	echo $((TIMEWORKED - PAUSES))
+}
+
+showtimeworked()
+{
+	TIME=$(date +%H:%M)
+	WORKED=$(gettimeworked)
+	echo "$($DATEMATHICS -m $WORKED) Hours worked"
 }
 
 loglogin()
@@ -54,7 +61,7 @@ resumework()
 	STOPPED=$(cat $HOME/.pause)
 	NOW=$(date +%H:%M)
 
-	logpause "$(data_hora -s $NOW $STOPPED)"
+	logpause "$($DATEMATHICS -s $NOW $STOPPED)"
 	echo TRUE > $HOME/.working
 	rm $HOME/.pause
 }
@@ -94,18 +101,18 @@ loglogout()
 		if [ ! "$LOGGEDOUT" ]
 		then
 			# compute work hours
-			NEWLINE="$TODAY $TIME, 0, $(data_hora -m "$TIMEWORKED")"
+			NEWLINE="$TODAY $TIME, 0, $($DATEMATHICS -m "$TIMEWORKED")"
 		else
 			# compute extra hours
 			LOGIN="$(cat $HOME/.working)"
 			EXTRAWORKED="$(echo $TODAY | awk '{print $5}')"
 			EXTRAWORKED=${EXTRAWORKED%,}
-			EXTRA="$(data_hora -s $TIME $LOGIN)"
-			EXTRA="$(data_hora -m $EXTRA)"
-			EXTRA="$(data_hora -a $EXTRA $EXTRAWORKED)"
+			EXTRA="$($DATEMATHICS -s $TIME $LOGIN)"
+			EXTRA="$($DATEMATHICS -m $EXTRA)"
+			EXTRA="$($DATEMATHICS -a $EXTRA $EXTRAWORKED)"
 
 			TOTALTIME="$(echo $TODAY | awk '{print $6}')"
-			TOTALTIME="$(data_hora -a $EXTRA $TOTALTIME)"
+			TOTALTIME="$($DATEMATHICS -a $EXTRA $TOTALTIME)"
 
 			NEWLINE="$(echo $TODAY | awk '{print $1" " $2" " $3" " $4}') $EXTRA, $TOTALTIME"
 			echo $NEWLINE
@@ -127,7 +134,7 @@ timetilexit()
 	then
 		MSG="You're already working over hours for ${TIMELEFT#-} minutes"
 	else
-		TIMELEFT=$(data_hora -m $TIMELEFT)
+		TIMELEFT=$($DATEMATHICS -m $TIMELEFT)
 		MSG="$TIMELEFT left"
 	fi
 
@@ -155,7 +162,7 @@ case "$1" in
 	resume)
 		resumework
 		;;
-	logpause)
+	pause)
 		shift
 		logpause "$1"
 		;;
@@ -166,14 +173,18 @@ case "$1" in
 		shift
 		timetilexit "$1"
 		;;
+	timeworked)
+		showtimeworked
+		;;
 	*)
-		echo "usage: punch_clock [ command ]"
+		echo "usage: ${0##*/} ( command )"
 		echo "commands:"
 		echo "			login: Register the login time and sets status as working"
 		echo "			logpause <time in minutes>: Register a pause of X minutes where X is the time informed"
 		echo "			logout: Register the logout time and removes the working status"
 		echo "			break: Register the time you are taking a break"
 		echo "			resume: Remove the break status and register the time you have been out"
-		echo "			left: Informs time left for you to complete 8 hours of work"
+		echo "			left [ notify ]: Informs time left for you to complete 8 hours of work"
+		echo "			timeworked: Informs time you have already worked in this session"
 		;;
 esac
