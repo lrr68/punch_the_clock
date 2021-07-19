@@ -2,6 +2,10 @@
 Shell script for keeping track of work hours.
 Stores date, login time, time on breaks, logout time, extra hours worked and total time worked in a csv file specified by $TIMEFILE.
 Set this variable in the script accordingly to your preferences.
+NOTE: Not POSIX compliant yet, as it uses the -i GNU sed extension.
+
+## Installation
+Just copy this script somewhere your PATH reaches.
 
 ## Usage
 ```
