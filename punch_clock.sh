@@ -159,6 +159,33 @@ timetilexit()
 	esac
 }
 
+showbalance()
+{
+	NUMBER_OF_DAYS=$(cat $TIMEFILE | wc -l)
+	# Do not count header
+	NUMBER_OF_DAYS=$((NUMBER_OF_DAYS -1))
+	EXPECTED_N_MINUTES=$((480 * NUMBER_OF_DAYS))
+	TOTAL="00:00"
+
+	for hours in $(tail -n $NUMBER_OF_DAYS $TIMEFILE | awk '{print $6}')
+	do
+		TOTAL=$($DATEMATHICS -a $TOTAL $hours)
+	done
+
+	#convert total to minutes so it's easier to operate
+	TOTAL="$($DATEMATHICS -m $TOTAL)"
+	BALANCE=$((EXPECTED_N_MINUTES - TOTAL))
+
+	if [ $BALANCE -lt 0 ]
+	then
+		MSG="You have $($DATEMATHICS -h $BALANCE) extra hours"
+	else
+		MSG="You owe $($DATEMATHICS -h $BALANCE) hours"
+	fi
+
+	echo "$MSG"
+}
+
 # RUNNING
 [ -a "$TIMEFILE" ] ||
 	echo "$HEADER" > $TIMEFILE
@@ -187,6 +214,9 @@ case "$1" in
 	timeworked)
 		showtimeworked
 		;;
+	balance)
+		showbalance
+		;;
 	*)
 		echo "usage: ${0##*/} ( command )"
 		echo "commands:"
@@ -197,5 +227,6 @@ case "$1" in
 		echo "		resume: Remove the break status and register the time you have been out"
 		echo "		left [ notify ]: Informs time left for you to complete 8 hours of work"
 		echo "		timeworked: Informs time you have already worked in this session"
+		echo "		balance: Shows if you have extra hours or owe hours (40 hour weeks)"
 		;;
 esac
