@@ -159,13 +159,53 @@ timetilexit()
 	esac
 }
 
+getweekday()
+{
+	[ ! "$1" ] && echo "0" && return
+
+	date="${1%,}"; shift
+	year="$(echo $date | awk -F '-' '{print $1}')"
+	month="$(echo $date | awk -F '-' '{print $2}')"
+	day="$(echo $date | awk -F '-' '{print $3}')"
+
+	calline="$(cal -v $day $month $year | grep " $day ")"
+
+	echo "$(echo $calline | awk '{print $1}')"
+}
+
+getexpectedhours()
+{
+	[ ! "$1" ] && echo "0" && return
+
+	EXPECTED_HOURS=0
+
+	NUMBER_OF_DAYS="$1"; shift
+
+	for line in $(tail -n $NUMBER_OF_DAYS $TIMEFILE | awk '{print $1}')
+	do
+		date="${line%%,*}"
+		weekday=$(getweekday $date)
+		if [ ! "$weekday" = "Sa" ] && [ ! "$weekday" = "Su" ]
+		then
+			EXPECTED_HOURS=$((EXPECTED_HOURS + 480))
+		fi
+	done
+
+	echo "$EXPECTED_HOURS"
+}
+
 showbalance()
 {
-	NUMBER_OF_DAYS=$(cat $TIMEFILE | wc -l)
-	# Do not count header
-	NUMBER_OF_DAYS=$((NUMBER_OF_DAYS -1))
-	EXPECTED_N_MINUTES=$((480 * NUMBER_OF_DAYS))
 	TOTAL="00:00"
+	BALANCE=0
+	MSG=""
+
+	# Do not count header
+	NUMBER_OF_DAYS=$(cat $TIMEFILE | wc -l)
+	NUMBER_OF_DAYS=$((NUMBER_OF_DAYS -1))
+
+	# Only take into account week days, worked weekends are extra hours
+	EXPECTED_N_MINUTES=$(getexpectedhours $NUMBER_OF_DAYS)
 
 	for hours in $(tail -n $NUMBER_OF_DAYS $TIMEFILE | awk '{print $6}')
 	do
@@ -178,6 +218,8 @@ showbalance()
 
 	if [ $BALANCE -lt 0 ]
 	then
+		# make it positive
+		BALANCE=${BALANCE#-}
 		MSG="You have $($DATEMATHICS -h $BALANCE) extra hours"
 	else
 		MSG="You owe $($DATEMATHICS -h $BALANCE) hours"
