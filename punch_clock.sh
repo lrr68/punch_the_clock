@@ -27,7 +27,7 @@ showtimeworked()
 {
 	TIME=$(date +%H:%M)
 	WORKED=$(gettimeworked)
-	echo "$($DATEMATHICS -m $WORKED) Hours worked"
+	echo "$($DATEMATHICS -h $WORKED) Hours worked"
 }
 
 loglogin()
@@ -106,7 +106,7 @@ loglogout()
 		if [ ! "$LOGGEDOUT" ]
 		then
 			# compute work hours
-			NEWLINE="$TODAY $TIME, 00:00, $($DATEMATHICS -m$TIMEWORKED)"
+			NEWLINE="$TODAY $TIME, 00:00, $($DATEMATHICS -h $TIMEWORKED)"
 		else
 			# compute extra hours
 			[ -a $HOME/.working ] &&
@@ -117,11 +117,11 @@ loglogout()
 			EXTRAWORKED=${EXTRAWORKED%,}
 			echo EXTRAWORKED $EXTRAWORKED
 			EXTRA="$($DATEMATHICS -s $TIME $LOGIN)"
-			EXTRA="$($DATEMATHICS -m $EXTRA)"
+			EXTRA="$($DATEMATHICS -h $EXTRA)"
 			EXTRA="$($DATEMATHICS -a $EXTRA $EXTRAWORKED)"
 
 			TOTALTIME="$(gettimeworked)"
-			TOTALTIME="$($DATEMATHICS -m $TOTALTIME)"
+			TOTALTIME="$($DATEMATHICS -h $TOTALTIME)"
 			echo totaltime $TOTALTIME
 			TOTALTIME="$($DATEMATHICS -a $EXTRA $TOTALTIME)"
 
@@ -145,7 +145,7 @@ timetilexit()
 	then
 		MSG="You're already working over hours for ${TIMELEFT#-} minutes"
 	else
-		TIMELEFT=$($DATEMATHICS -m $TIMELEFT)
+		TIMELEFT=$($DATEMATHICS -h $TIMELEFT)
 		MSG="$TIMELEFT left, estimated exit: $(data_hora -a $TIME $TIMELEFT)"
 	fi
 
