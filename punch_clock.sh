@@ -221,6 +221,11 @@ showbalance()
 	echo "$MSG"
 }
 
+showtimefile()
+{
+	column -s',' -t < $TIMEFILE
+}
+
 # RUNNING
 [ -a "$TIMEFILE" ] ||
 	echo "$HEADER" > $TIMEFILE
@@ -252,6 +257,9 @@ case "$1" in
 	balance)
 		showbalance
 		;;
+	show)
+		showtimefile
+		;;
 	*)
 		echo "usage: ${0##*/} ( command )"
 		echo "commands:"
@@ -263,5 +271,6 @@ case "$1" in
 		echo "		left [ notify ]: Informs time left for you to complete 8 hours of work"
 		echo "		timeworked: Informs time you have already worked in this session"
 		echo "		balance: Shows if you have extra hours or owe hours (40 hour weeks)"
+		echo "		show: Shows the timefile"
 		;;
 esac
