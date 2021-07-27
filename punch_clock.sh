@@ -149,14 +149,9 @@ timetilexit()
 		MSG="$TIMELEFT left, estimated exit: $(data_hora -a $TIME $TIMELEFT)"
 	fi
 
-	case "$1" in
-		notify)
-			notify-send "$MSG"
-			;;
-		*)
-			echo $MSG
-			;;
-	esac
+	[ "$1" = "notify" ] &&
+		notify-send "$MSG" ||
+		echo $MSG
 }
 
 getweekday()
@@ -164,11 +159,9 @@ getweekday()
 	[ ! "$1" ] && echo "0" && return
 
 	date="${1%,}"; shift
-	year="$(echo $date | awk -F '-' '{print $1}')"
-	month="$(echo $date | awk -F '-' '{print $2}')"
-	day="$(echo $date | awk -F '-' '{print $3}')"
+	day="${date##*-}"
 
-	calline="$(cal -v $day $month $year | grep " $day ")"
+	calline="$(cal -v $date | grep " $day ")"
 
 	echo "$(echo $calline | awk '{print $1}')"
 }
