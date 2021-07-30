@@ -196,9 +196,11 @@ showbalance()
 	NUMBER_OF_DAYS=$((NUMBER_OF_DAYS -1))
 
 	# Only take into account week days, worked weekends are extra hours
-	EXPECTED_N_MINUTES=$(getexpectedhours $NUMBER_OF_DAYS)
+	# Do not take today into account
+	EXPECTED_N_MINUTES=$(getexpectedhours $((NUMBER_OF_DAYS - 1)))
 
-	for hours in $(tail -n $NUMBER_OF_DAYS $TIMEFILE | awk '{print $6}')
+	# Do not count how many hours you owe today
+	for hours in $(tail -n $NUMBER_OF_DAYS $TIMEFILE | head -n -1 | awk '{print $6}')
 	do
 		TOTAL=$($DATEMATHICS -a $TOTAL $hours)
 	done
