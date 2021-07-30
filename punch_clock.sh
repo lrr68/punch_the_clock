@@ -109,9 +109,7 @@ loglogout()
 			NEWLINE="$TODAY $TIME, 00:00, $($DATEMATHICS -h $TIMEWORKED)"
 		else
 			# compute extra hours
-			[ -a $HOME/.working ] &&
-			LOGIN="$(cat $HOME/.working)" ||
-			echo "Not Logged in" && return
+			LOGIN="$(cat $HOME/.working)"
 
 			EXTRAWORKED="$(echo $TODAY | awk '{print $5}')"
 			EXTRAWORKED=${EXTRAWORKED%,}
