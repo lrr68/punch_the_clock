@@ -138,18 +138,43 @@ timetilexit()
 {
 	TIME=$(date +%H:%M)
 	TIMEWORKED=$(gettimeworked)
-	TIMELEFT=$(( 8*60 - $TIMEWORKED))
+	TIMELEFT=$(( 480 - $TIMEWORKED))
 	if [ $TIMELEFT -lt 1 ]
 	then
 		MSG="You're already working over hours for ${TIMELEFT#-} minutes"
 	else
-		TIMELEFT=$($DATEMATHICS -h $TIMELEFT)
-		MSG="$TIMELEFT left, estimated exit: $(data_hora -a $TIME $TIMELEFT)"
+		HOURSLEFT=$($DATEMATHICS -h $TIMELEFT)
+		MSG="$HOURSLEFT left, estimated exit: $(data_hora -a $TIME $HOURSLEFT)"
 	fi
 
 	[ "$1" = "notify" ] &&
 		notify-send "$MSG" ||
 		echo $MSG
+
+	balance="$(getbalance)"
+	balance_in_hours="$($DATEMATHICS -h $balance)"
+	if [ "$balance" -lt 0 ]
+	then
+		if [ $balance -gt $TIMELEFT ]
+		then
+			echo "Stop working now and use $($DATEMATHICS -s $balance_in_hours $HOURSLEFT) extra hours"
+		else
+			left_minus_extra_hours="$($DATEMATHICS -s $HOURSLEFT $balance_in_hours)"
+			hours_left_minus_extra="$($DATEMATHICS -h $left_minus_extra_hours)"
+			extra_use="$($DATEMATHICS -s $HOURSLEFT $hours_left_minus_extra)"
+			extra_use="$($DATEMATHICS -h $extra_use)"
+			left_used_extra="$($DATEMATHICS -s $balance_in_hours $extra_use)"
+			left_used_extra="$($DATEMATHICS -h $left_used_extra)"
+			if [ $left_minus_extra_hours -lt 1 ]
+			then
+				echo "Stop working now and use $extra_use of extra time, leaving you with $left_used_extra extra hours."
+			else
+				echo "Work only $($DATEMATHICS -h $left_minus_extra_hours) and use $extra_use extra hours, leaving you with $left_used_extra extra hours."
+			fi
+		fi
+	else
+		echo "Work $($DATEMATHICS -a $HOURSLEFT $balance_in_hours) and pay the $balance_in_hours hours you owe"
+	fi
 }
 
 getweekday()
@@ -185,7 +210,7 @@ getexpectedhours()
 	echo "$EXPECTED_HOURS"
 }
 
-showbalance()
+getbalance()
 {
 	TOTAL="00:00"
 	BALANCE=0
@@ -208,6 +233,13 @@ showbalance()
 	#convert total to minutes so it's easier to operate
 	TOTAL="$($DATEMATHICS -m $TOTAL)"
 	BALANCE=$((EXPECTED_N_MINUTES - TOTAL))
+
+	echo "$BALANCE"
+}
+
+showbalance()
+{
+	BALANCE="$(getbalance)"
 
 	if [ $BALANCE -lt 0 ]
 	then
