@@ -224,6 +224,7 @@ showbalance()
 showtimefile()
 {
 	column -s',' -t < $TIMEFILE
+	showbalance
 }
 
 # RUNNING
