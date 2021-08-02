@@ -113,7 +113,6 @@ loglogout()
 
 			EXTRAWORKED="$(echo $TODAY | awk '{print $5}')"
 			EXTRAWORKED=${EXTRAWORKED%,}
-			echo EXTRAWORKED $EXTRAWORKED
 			EXTRA="$($DATEMATHICS -s $TIME $LOGIN)"
 			EXTRA="$($DATEMATHICS -h $EXTRA)"
 			EXTRA="$($DATEMATHICS -a $EXTRA $EXTRAWORKED)"
@@ -167,9 +166,9 @@ timetilexit()
 			left_used_extra="$($DATEMATHICS -h $left_used_extra)"
 			if [ $left_minus_extra_hours -lt 1 ]
 			then
-				echo "Stop working now and use $extra_use of extra time, leaving you with $left_used_extra extra hours."
+				echo "Stop working now and still have $hours_left_minus_extra extra hours."
 			else
-				echo "Work only $($DATEMATHICS -h $left_minus_extra_hours) and use $extra_use extra hours, leaving you with $left_used_extra extra hours."
+				echo "Work only $($DATEMATHICS -h $left_minus_extra_hours) and use $extra_use extra hours."
 			fi
 		fi
 	else
