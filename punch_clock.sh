@@ -258,6 +258,23 @@ showtimefile()
 	showbalance
 }
 
+getstatus()
+{
+	STATUS="$(cat $HOME/.working)"
+	if [ "$STATUS" = "TRUE" ]
+	then
+		echo Working normal hours
+	elif [ "$STATUS" = "FALSE" ]
+	then
+		echo On a break
+	elif [ -n "$STATUS" ]
+	then
+		echo Working extra hours
+	else
+		echo Not working
+	fi
+}
+
 # RUNNING
 [ -a "$TIMEFILE" ] ||
 	echo "$HEADER" > $TIMEFILE
@@ -289,6 +306,9 @@ case "$1" in
 	balance)
 		showbalance
 		;;
+	status)
+		getstatus
+		;;
 	show)
 		showtimefile
 		;;
@@ -304,5 +324,6 @@ case "$1" in
 		echo "		timeworked: Informs time you have already worked in this session"
 		echo "		balance: Shows if you have extra hours or owe hours (40 hour weeks)"
 		echo "		show: Shows the timefile"
+		echo "		status: Shows the working status"
 		;;
 esac
