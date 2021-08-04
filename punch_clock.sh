@@ -6,7 +6,8 @@
 
 # Script capable of doing operations with date and time
 DATEMATHICS="date_time.sh"
-TIMEFILE="$HOME/.time/workhours.csv"
+TIMEFILE="$HOME/.time/workhoursmonth.csv"
+FULLTIMEFILE="$HOME/.time/workhours.csv"
 HEADER="day, login time, pauses (in minutes), logout time, extra hours, worked hours"
 
 DATE=$(date +%Y-%m-%d)
@@ -38,10 +39,23 @@ loglogin()
 
 	if [ ! "$TODAY" ]
 	then
+		YESTERDAY=$(tail -n 1 $TIMEFILE)
+		Y_MONTH=${YESTERDAY%-*}
+		Y_MONTH=${Y_MONTH#*-}
+		T_MONTH=${DATE%-*}
+		T_MONTH=${T_MONTH#*-}
+		# changed the month, append timefile to the global time file and begin a new monthly time file
+		if [ "$Y_MONTH" -lt "$T_MONTH" ]
+		then
+			[ -e "$FULLTIMEFILE" ] ||
+				echo "$HEADER" > "$FULLTIMEFILE"
+
+			tail -n +2 "$TIMEFILE" >> "$FULLTIMEFILE"
+			echo "$HEADER" > "$TIMEFILE"
+		fi
 		echo "$DATE, $TIME, 0," >> "$TIMEFILE"
 		echo "TRUE" > "$HOME/.working"
 	else
-
 		[ -e "$HOME/.working" ] && echo "Already Logged In" && return
 
 		LOGGEDOUT="$(echo "$TODAY" | awk '{print $4}')"
