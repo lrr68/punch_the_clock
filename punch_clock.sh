@@ -276,6 +276,7 @@ showbalance()
 showtimefile()
 {
 	column -s',' -t < "$TIMEFILE"
+	[ "$(wc -l < "$TIMEFILE")" -lt 2 ] && return
 	showbalance
 }
 
