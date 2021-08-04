@@ -231,7 +231,7 @@ getbalance()
 	LOGGEDOUT="$(echo "$TODAY" | awk '{print $4}')"
 
 	# Do not count header
-	NUMBER_OF_DAYS=$(wc -l "$TIMEFILE")
+	NUMBER_OF_DAYS=$(wc -l < "$TIMEFILE")
 	NUMBER_OF_DAYS=$((NUMBER_OF_DAYS -1))
 
 	# Only take into account week days, worked weekends are extra hours
