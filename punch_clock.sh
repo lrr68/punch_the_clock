@@ -109,7 +109,7 @@ logpause()
 
 loglogout()
 {
-	if [ ! -e "$HOME/.working" ]
+	if [ -e "$HOME/.working" ]
 	then
 		TIME=$(date +%H:%M)
 		TODAY=$(grep -r "^$DATE" "$TIMEFILE")
