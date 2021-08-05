@@ -69,7 +69,7 @@ loglogin()
 takebreak()
 {
 	echo "FALSE" > "$HOME/.working"
-	"$(date +%H:%M)" > "$HOME/.pause"
+	echo "$(date +%H:%M)" > "$HOME/.pause"
 }
 
 resumework()
