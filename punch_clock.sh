@@ -152,25 +152,29 @@ timetilexit()
 	cur_time=$(date +%H:%M)
 	timeworked=$(gettimeworked)
 	timeleft=$(( 480 - "$timeworked"))
-	if [ "$timeleft" -lt 1 ]
-	then
-		msg="You're already working over hours for ${timeleft#-} minutes"
-	else
-		hoursleft=$($datemathics -h "$timeleft")
-		msg="$hoursleft left, estimated exit: $(data_hora -a "$cur_time" "$hoursleft")"
-	fi
-
-	[ "$1" = "notify" ] &&
-		notify-send "$msg" ||
-		echo "$msg"
-
+	weekday=$(getweekday "$cur_date")
 	balance="$(getbalance)"
 	balance_in_hours="$($datemathics -h "$balance")"
+
+	if [ "$weekday" = "Sa" ] || [ "$weekday" = "Su" ]
+	then
+		msg="Working extra hours.\n"
+		timeleft="0"
+	else
+		if [ "$timeleft" -lt 1 ]
+		then
+			msg="You're already working over hours for ${timeleft#-} minutes.\n"
+		else
+			hoursleft=$($datemathics -h "$timeleft")
+			msg="$hoursleft left, estimated exit: $(data_hora -a "$cur_time" "$hoursleft").\n"
+		fi
+	fi
+
 	if [ "$balance" -lt 0 ]
 	then
 		if [ "$balance" -gt "$timeleft" ]
 		then
-			echo "Stop working now and use $($datemathics -s "$balance_in_hours" "$hoursleft") extra hours"
+			msg="$msg""Stop working now and use $($datemathics -s "$balance_in_hours" "$hoursleft") extra hours\n"
 		else
 			left_minus_extra_hours="$($datemathics -s "$hoursleft" "$balance_in_hours")"
 			hours_left_minus_extra="$($datemathics -h "$left_minus_extra_hours")"
@@ -180,22 +184,26 @@ timetilexit()
 			left_used_extra="$($datemathics -h "$left_used_extra")"
 			if [ "$left_minus_extra_hours" -lt 1 ]
 			then
-				echo "Stop working now and still have $hours_left_minus_extra extra hours."
+				msg="$msg""Stop working now and still have $hours_left_minus_extra extra hours.\n"
 			else
-				echo "Work only $($datemathics -h "$left_minus_extra_hours") and use $extra_use extra hours."
+				msg="$msg""Work only $($datemathics -h "$left_minus_extra_hours") and use $extra_use extra hours.\n"
 			fi
 		fi
 	else
-		echo "Work $($datemathics -a "$hoursleft" "$balance_in_hours") and pay the $balance_in_hours hours you owe"
+		msg="$msg""Work $($datemathics -a "$hoursleft" "$balance_in_hours") and pay the $balance_in_hours hours you owe.\n"
 	fi
+
+	[ "$1" = "notify" ] &&
+		notify-send "$msg" ||
+		printf "$msg"
 }
 
 getweekday()
 {
-	[ ! "$1" ] && echo "0" && return
+	[ ! "$1" ] && return
 
 	date="${1%,}"; shift
-	day="${date##*-}"
+	day="${date##*-0}"
 
 	cal_line="$(cal -v "$date" | grep " $day ")"
 
@@ -284,6 +292,8 @@ showtimefile()
 
 getstatus()
 {
+	[ ! -e "$HOME/.working" ] && echo "Not working" && return
+
 	status="$(cat "$HOME/.working")"
 	if [ "$status" = "TRUE" ]
 	then
@@ -291,11 +301,8 @@ getstatus()
 	elif [ "$status" = "FALSE" ]
 	then
 		echo On a break
-	elif [ -n "$status" ]
-	then
-		echo Working extra hours
 	else
-		echo Not working
+		echo Working extra hours
 	fi
 }
 
