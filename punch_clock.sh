@@ -126,14 +126,13 @@ loglogout()
 			# compute extra hours
 			login="$(cat "$HOME/.working")"
 
-			extraworked="$(echo "$today" | awk '{print $5}')"
-			extraworked=${extraworked%,}
+			extraworked=${today%,*}
+			extraworked=${extraworked##*,}
 			extra="$($datemathics -s "$cur_time" "$login")"
 			extra="$($datemathics -h "$extra")"
 			extra="$($datemathics -a "$extra" "$extraworked")"
 
-			totaltime="$(gettimeworked)"
-			totaltime="$($datemathics -h "$totaltime")"
+			totaltime=${today##*,}
 			totaltime="$($datemathics -a "$extra" "$totaltime")"
 
 			newline="$(echo "$today" | awk '{print $1" " $2" " $3" " $4}') $extra, $totaltime"
@@ -152,6 +151,7 @@ timetilexit()
 	cur_time=$(date +%H:%M)
 	timeworked=$(gettimeworked)
 	timeleft=$(( 480 - "$timeworked"))
+	hoursleft=$($datemathics -h "$timeleft")
 	weekday=$(getweekday "$cur_date")
 	balance="$(getbalance)"
 	balance_in_hours="$($datemathics -h "$balance")"
@@ -165,7 +165,6 @@ timetilexit()
 		then
 			msg="You're already working over hours for ${timeleft#-} minutes.\n"
 		else
-			hoursleft=$($datemathics -h "$timeleft")
 			msg="$hoursleft left, estimated exit: $(data_hora -a "$cur_time" "$hoursleft").\n"
 		fi
 	fi
@@ -182,6 +181,7 @@ timetilexit()
 			extra_use="$($datemathics -h "$extra_use")"
 			left_used_extra="$($datemathics -s "$balance_in_hours" "$extra_use")"
 			left_used_extra="$($datemathics -h "$left_used_extra")"
+
 			if [ "$left_minus_extra_hours" -lt 1 ]
 			then
 				msg="$msg""Stop working now and still have $hours_left_minus_extra extra hours.\n"
