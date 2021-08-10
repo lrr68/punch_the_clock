@@ -337,6 +337,9 @@ case "$arg" in
 	balance)
 		showbalance
 		;;
+	edit)
+		"$EDITOR" "$timefile"
+		;;
 	status)
 		getstatus
 		;;
@@ -354,6 +357,7 @@ case "$arg" in
 		echo "		left [ notify ]: Informs time left for you to complete 8 hours of work"
 		echo "		timeworked: Informs time you have already worked in this session"
 		echo "		balance: Shows if you have extra hours or owe hours (40 hour weeks)"
+		echo "		edit: Opens the timefile with EDITOR"
 		echo "		show: Shows the timefile"
 		echo "		status: Shows the working status"
 		;;
