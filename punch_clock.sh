@@ -33,6 +33,46 @@ showtimeworked()
 	echo "$($datemathics -h "$worked") Hours worked"
 }
 
+updatemonth()
+{
+	[ -e "$fulltimefile" ] ||
+		echo "$header" > "$fulltimefile"
+
+	balance="$(getbalance)"
+	balance_in_hours="$($datemathics -h "$balance")"
+
+	# remove balance on timefile to append it do fulltimefile
+	sed "/00:00, 0, 00:00, 00:00/d" < "$timefile" > "$timefile.aux" &&
+		mv "$timefile.aux" "$timefile"
+
+	tail -n +2 "$timefile" >> "$fulltimefile"
+
+	echo "$header" > "$timefile"
+
+	# put balance as first line of the file so we dont lose it
+	if [ "$balance" -lt 0 ]
+	then
+		#extra hours
+		total="$($datemathics -a "08:00" "$balance_in_hours")"
+		echo "${yesterday%%,*}, 00:00, 0, 00:00, 00:00, $total" >> "$timefile"
+	else
+		total="$balance"
+		#log time you owe as multiple days in which you did not work all the hours
+		while [ "$total" -gt 0 ]
+		do
+			if [ "$total" -gt "$workday_in_minutes" ]
+			then
+				total="$((total - workday_in_minutes))"
+				echo "${yesterday%%,*}, 00:00, 0, 00:00, 00:00, 00:00" >> "$timefile"
+			else
+				left="$((workday_in_minutes - total))"
+				echo "${yesterday%%,*}, 00:00, 0, 00:00, 00:00, $($datemathics -h "$left")" >> "$timefile"
+				total=0
+			fi
+		done
+	fi
+}
+
 loglogin()
 {
 	cur_time=$(date +%H:%M)
@@ -45,15 +85,11 @@ loglogin()
 		y_month=${y_month#*-}
 		t_month=${cur_date%-*}
 		t_month=${t_month#*-}
-		# changed the month, append timefile to the global time file and begin a new monthly time file
-		if [ "$y_month" -lt "$t_month" ]
-		then
-			[ -e "$fulltimefile" ] ||
-				echo "$header" > "$fulltimefile"
 
-			tail -n +2 "$timefile" >> "$fulltimefile"
-			echo "$header" > "$timefile"
-		fi
+		# changed the month, append timefile to the global time file and begin a new monthly time file
+		[ "$y_month" -lt "$t_month" ] &&
+			updatemonth "$yesterday"
+
 		echo "$cur_date, $cur_time, 0," >> "$timefile"
 		echo "TRUE" > "$HOME/.working"
 		timetilexit
