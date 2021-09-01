@@ -9,6 +9,7 @@ datemathics="date_time.sh"
 timefile="$HOME/.time/workhoursmonth.csv"
 fulltimefile="$HOME/.time/workhours.csv"
 header="day, login time, pauses (in minutes), logout time, extra hours, worked hours"
+workday_in_minutes="480"
 
 cur_date=$(date +%Y-%m-%d)
 cur_time=""
@@ -151,7 +152,7 @@ timetilexit()
 {
 	cur_time=$(date +%H:%M)
 	timeworked=$(gettimeworked)
-	timeleft=$(( 480 - "$timeworked"))
+	timeleft=$(( "$workday_in_minutes" - "$timeworked"))
 	hoursleft=$($datemathics -h "$timeleft")
 	weekday=$(getweekday "$cur_date")
 	balance="$(getbalance)"
@@ -237,17 +238,20 @@ getexpectedhours()
 	echo "$expected_hours"
 }
 
+#gets balance in minutes. Negative balance means extra hours
 getbalance()
 {
 	total="00:00"
 	balance=0
 	msg=""
+	file="$timefile"
+	[ "$1" = "full" ] && file="$fulltimefile"
 
-	today=$(grep -r "^$cur_date" "$timefile")
+	today=$(grep -r "^$cur_date" "$file")
 	loggedout="$(echo "$today" | awk '{print $4}')"
 
 	# Do not count header
-	number_of_days=$(wc -l < "$timefile")
+	number_of_days=$(wc -l < "$file")
 	number_of_days=$((number_of_days -1))
 
 	# Only take into account week days, worked weekends are extra hours
@@ -255,10 +259,10 @@ getbalance()
 	if [ ! "$loggedout" ]
 	then
 		expected_n_minutes=$(getexpectedhours $((number_of_days - 1)))
-		hours_worked_list="$(tail -n "$number_of_days" "$timefile" | head -n -1 | awk '{print $6}')"
+		hours_worked_list="$(tail -n "$number_of_days" "$file" | head -n -1 | awk '{print $6}')"
 	else
 		expected_n_minutes=$(getexpectedhours "$number_of_days")
-		hours_worked_list="$(tail -n "$number_of_days" "$timefile" | awk '{print $6}')"
+		hours_worked_list="$(tail -n "$number_of_days" "$file" | awk '{print $6}')"
 	fi
 
 	for hours in $hours_worked_list
@@ -291,9 +295,12 @@ showbalance()
 
 showtimefile()
 {
-	column -s',' -t < "$timefile"
-	[ "$(wc -l < "$timefile")" -lt 2 ] && return
-	showbalance
+	file="$timefile"
+	[ "$1" = "full" ] && file="$fulltimefile"
+
+	column -s',' -t < "$file"
+	[ "$(wc -l < "$file")" -lt 2 ] && return
+	showbalance "$1"
 }
 
 getstatus()
@@ -341,7 +348,7 @@ case "$arg" in
 		showtimeworked
 		;;
 	balance)
-		showbalance
+		showbalance "$1"
 		;;
 	edit)
 		"$EDITOR" "$timefile"
