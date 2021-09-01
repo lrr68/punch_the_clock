@@ -76,6 +76,7 @@ takebreak()
 
 resumework()
 {
+	[ -e "$HOME/.pause" ] || return
 	stopped=$(cat "$HOME/.pause")
 	now=$(date +%H:%M)
 
@@ -127,12 +128,12 @@ loglogout()
 			login="$(cat "$HOME/.working")"
 
 			extraworked=${today%,*}
-			extraworked=${extraworked##*,}
+			extraworked=${extraworked##*, }
 			extra="$($datemathics -s "$cur_time" "$login")"
 			extra="$($datemathics -h "$extra")"
 			extra="$($datemathics -a "$extra" "$extraworked")"
 
-			totaltime=${today##*,}
+			totaltime=${today##*, }
 			totaltime="$($datemathics -a "$extra" "$totaltime")"
 
 			newline="$(echo "$today" | awk '{print $1" " $2" " $3" " $4}') $extra, $totaltime"
@@ -173,7 +174,12 @@ timetilexit()
 	then
 		if [ "$balance" -gt "$timeleft" ]
 		then
-			msg="$msg""Stop working now and use $($datemathics -s "$balance_in_hours" "$hoursleft") extra hours\n"
+			if [ "$timeleft" -gt 0 ]
+			then
+				msg="$msg""Stop working now and use $($datemathics -s "$balance_in_hours" "$hoursleft") extra hours\n"
+			else
+				msg="$msg""Stop working now and have $($datemathics -a "$balance_in_hours" "$hoursleft") extra hours in your balance.\n"
+			fi
 		else
 			left_minus_extra_hours="$($datemathics -s "$hoursleft" "$balance_in_hours")"
 			hours_left_minus_extra="$($datemathics -h "$left_minus_extra_hours")"
