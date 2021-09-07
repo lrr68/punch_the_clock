@@ -8,7 +8,7 @@
 datemathics="date_time.sh"
 timefile="$HOME/.time/workhoursmonth.csv"
 fulltimefile="$HOME/.time/workhours.csv"
-header="day, login time, pauses (in minutes), logout time, extra hours, worked hours"
+header="day,login time,pauses (in minutes),logout time,extra hours,worked hours"
 workday_in_minutes="480"
 
 cur_date=$(date +%Y-%m-%d)
@@ -17,10 +17,10 @@ cur_time=""
 gettimeworked()
 {
 	today=$(grep -r "^$cur_date" "$timefile")
-	logintime="$(echo "$today" | awk '{print $2}')"
+	logintime="$(echo "$today" | awk -F',' '{print $2}')"
 	logintime=${logintime%,}
 	timeworked=$($datemathics -s "$cur_time" "$logintime")
-	pauses=$(echo "$today" | awk '{print $3}')
+	pauses=$(echo "$today" | awk -F',' '{print $3}')
 	pauses=${pauses%,}
 
 	echo $((timeworked - pauses))
@@ -42,7 +42,7 @@ updatemonth()
 	balance_in_hours="$($datemathics -h "$balance")"
 
 	# remove balance on timefile to append it do fulltimefile
-	sed "/00:00, 0, 00:00, 00:00/d" < "$timefile" > "$timefile.aux" &&
+	sed "/00:00,0,00:00,00:00/d" < "$timefile" > "$timefile.aux" &&
 		mv "$timefile.aux" "$timefile"
 
 	tail -n +2 "$timefile" >> "$fulltimefile"
@@ -54,7 +54,7 @@ updatemonth()
 	then
 		#extra hours
 		total="$($datemathics -a "08:00" "$balance_in_hours")"
-		echo "${yesterday%%,*}, 00:00, 0, 00:00, 00:00, $total" >> "$timefile"
+		echo "${yesterday%%,*},00:00,0,00:00,00:00,$total" >> "$timefile"
 	else
 		total="$balance"
 		#log time you owe as multiple days in which you did not work all the hours
@@ -63,10 +63,10 @@ updatemonth()
 			if [ "$total" -gt "$workday_in_minutes" ]
 			then
 				total="$((total - workday_in_minutes))"
-				echo "${yesterday%%,*}, 00:00, 0, 00:00, 00:00, 00:00" >> "$timefile"
+				echo "${yesterday%%,*},00:00,0,00:00,00:00,00:00" >> "$timefile"
 			else
 				left="$((workday_in_minutes - total))"
-				echo "${yesterday%%,*}, 00:00, 0, 00:00, 00:00, $($datemathics -h "$left")" >> "$timefile"
+				echo "${yesterday%%,*},00:00,0,00:00,00:00,$($datemathics -h "$left")" >> "$timefile"
 				total=0
 			fi
 		done
@@ -77,6 +77,8 @@ loglogin()
 {
 	cur_time=$(date +%H:%M)
 	today=$(grep -r "^$cur_date" "$timefile")
+	holliday=""
+	[ "$1" = 'h' ] && holliday=" H"
 
 	if [ ! "$today" ]
 	then
@@ -86,17 +88,17 @@ loglogin()
 		t_month=${cur_date%-*}
 		t_month=${t_month#*-}
 
-		# changed the month, append timefile to the global time file and begin a new monthly time file
+		# changed the month,append timefile to the global time file and begin a new monthly time file
 		[ "$y_month" -lt "$t_month" ] &&
 			updatemonth "$yesterday"
 
-		echo "$cur_date, $cur_time, 0," >> "$timefile"
+		echo "$cur_date$holliday,$cur_time,0," >> "$timefile"
 		echo "TRUE" > "$HOME/.working"
 		timetilexit
 	else
 		[ -e "$HOME/.working" ] && echo "Already Logged In" && return
 
-		loggedout="$(echo "$today" | awk '{print $4}')"
+		loggedout="$(echo "$today" | awk -F',' '{print $4}')"
 		if [ "$loggedout" ]
 		then
 			echo "$cur_time" > "$HOME/.working"
@@ -128,16 +130,16 @@ logpause()
 	if [ "$downtime" ]
 	then
 		today=$(grep -r "^$cur_date" "$timefile")
-		todaypause=$(echo "$today" | awk '{print $3}')
+		todaypause=$(echo "$today" | awk -F',' '{print $3}')
 		todaypause=${todaypause%,}
 		totaldowntime=$((todaypause + downtime))
 
-		loggedout="$(echo "$today" | awk '{print $4}')"
+		loggedout="$(echo "$today" | awk -F',' '{print $4}')"
 		if [ "$loggedout" ]
 		then
-			newline=$(echo "$today" | awk '{print $1" " $2" " '$totaldowntime'", " $4" " $5" " $6}')
+			newline=$(echo "$today" | awk -F',' '{print $1"," $2"," '$totaldowntime'"," $4"," $5"," $6}')
 		else
-			newline=$(echo "$today" | awk '{print $1" " $2" " '$totaldowntime'","}')
+			newline=$(echo "$today" | awk -F',' '{print $1"," $2"," '$totaldowntime'","}')
 		fi
 		[ "$newline" ] &&
 			sed "s/$today/$newline/g" < "$timefile" > "$timefile.aux" &&
@@ -155,25 +157,25 @@ loglogout()
 		today=$(grep -r "^$cur_date" "$timefile")
 		timeworked=$(gettimeworked)
 
-		loggedout="$(echo "$today" | awk '{print $4}')"
+		loggedout="$(echo "$today" | awk -F',' '{print $4}')"
 		if [ ! "$loggedout" ]
 		then
 			# compute work hours
-			newline="$today $cur_time, 00:00, $("$datemathics" -h "$timeworked")"
+			newline="$today$cur_time,00:00,$("$datemathics" -h "$timeworked")"
 		else
 			# compute extra hours
 			login="$(cat "$HOME/.working")"
 
 			extraworked=${today%,*}
-			extraworked=${extraworked##*, }
+			extraworked=${extraworked##*,}
 			extra="$($datemathics -s "$cur_time" "$login")"
 			extra="$($datemathics -h "$extra")"
 			extra="$($datemathics -a "$extra" "$extraworked")"
 
-			totaltime=${today##*, }
+			totaltime=${today##*,}
 			totaltime="$($datemathics -a "$extra" "$totaltime")"
 
-			newline="$(echo "$today" | awk '{print $1" " $2" " $3" " $4}') $extra, $totaltime"
+			newline="$(echo "$today" | awk -F',' '{print $1"," $2"," $3"," $4}')$extra,$totaltime"
 		fi
 
 		sed "s/$today/$newline/g" < "$timefile" >"$timefile.aux" &&
@@ -203,7 +205,7 @@ timetilexit()
 		then
 			msg="You're already working over hours for ${timeleft#-} minutes.\n"
 		else
-			msg="$hoursleft left, estimated exit: $(data_hora -a "$cur_time" "$hoursleft").\n"
+			msg="$hoursleft left,estimated exit: $(data_hora -a "$cur_time" "$hoursleft").\n"
 		fi
 	fi
 
@@ -253,25 +255,33 @@ getweekday()
 	echo "$cal_line" | awk '{print $1}'
 }
 
-getexpectedhours()
+getexpectedminutes()
 {
 	[ ! "$1" ] && echo "0" && return
 
-	expected_hours=0
+	expected_minutes=0
 
 	number_of_days="$1"; shift
 
-	for line in $(tail -n "$number_of_days" "$timefile" | awk '{print $1}')
+	for line in $(tail -n "$number_of_days" "$timefile" | awk -F',' '{print $1}')
 	do
 		date="${line%%,*}"
+
+		# Last day computed was a holliday, subtract it
+		if [ "${line##* }" = "H" ]
+		then
+			expected_minutes=$((expected_minutes - workday_in_minutes))
+			continue
+		fi
+
 		weekday=$(getweekday "$date")
 		if [ ! "$weekday" = "Sa" ] && [ ! "$weekday" = "Su" ]
 		then
-			expected_hours=$((expected_hours + 480))
+			expected_minutes=$((expected_minutes + workday_in_minutes))
 		fi
 	done
 
-	echo "$expected_hours"
+	echo "$expected_minutes"
 }
 
 #gets balance in minutes. Negative balance means extra hours
@@ -284,21 +294,21 @@ getbalance()
 	[ "$1" = "full" ] && file="$fulltimefile"
 
 	today=$(grep -r "^$cur_date" "$file")
-	loggedout="$(echo "$today" | awk '{print $4}')"
+	loggedout="$(echo "$today" | awk -F',' '{print $4}')"
 
 	# Do not count header
 	number_of_days=$(wc -l < "$file")
 	number_of_days=$((number_of_days -1))
 
-	# Only take into account week days, worked weekends are extra hours
+	# Only take into account week days,worked weekends are extra hours
 	# Do not take today into account if i have not logged out
 	if [ ! "$loggedout" ]
 	then
-		expected_n_minutes=$(getexpectedhours $((number_of_days - 1)))
-		hours_worked_list="$(tail -n "$number_of_days" "$file" | head -n -1 | awk '{print $6}')"
+		expected_n_minutes=$(getexpectedminutes $((number_of_days - 1)))
+		hours_worked_list="$(tail -n "$number_of_days" "$file" | head -n -1 | awk -F',' '{print $6}')"
 	else
-		expected_n_minutes=$(getexpectedhours "$number_of_days")
-		hours_worked_list="$(tail -n "$number_of_days" "$file" | awk '{print $6}')"
+		expected_n_minutes=$(getexpectedminutes "$number_of_days")
+		hours_worked_list="$(tail -n "$number_of_days" "$file" | awk -F',' '{print $6}')"
 	fi
 
 	for hours in $hours_worked_list
@@ -359,11 +369,12 @@ getstatus()
 [ -e "$timefile" ] ||
 	echo "$header" > "$timefile"
 
-arg="$1"; shift
+arg=""
+[ "$1" ] && arg="$1" && shift
 
 case "$arg" in
 	login)
-		loglogin
+		loglogin "$1"
 		;;
 	break)
 		takebreak
@@ -398,7 +409,7 @@ case "$arg" in
 	*)
 		echo "usage: ${0##*/} ( command )"
 		echo "commands:"
-		echo "		login: Register the login time and sets status as working"
+		echo "		login [ h ]: Register the login time and sets status as working. If h is passed, mark day as holliday"
 		echo "		logpause <time in minutes>: Register a pause of X minutes where X is the time informed"
 		echo "		logout: Register the logout time and removes the working status"
 		echo "		break: Register the time you are taking a break"
