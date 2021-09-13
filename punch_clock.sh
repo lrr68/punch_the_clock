@@ -9,6 +9,7 @@ datemathics="date_time.sh"
 timefile="$HOME/.time/workhoursmonth.csv"
 fulltimefile="$HOME/.time/workhours.csv"
 header="day,login time,pauses (in minutes),logout time,extra hours,worked hours"
+
 workday_in_minutes="480"
 
 cur_date=$(date +%Y-%m-%d)
@@ -175,7 +176,7 @@ loglogout()
 			totaltime=${today##*,}
 			totaltime="$($datemathics -a "$extra" "$totaltime")"
 
-			newline="$(echo "$today" | awk -F',' '{print $1"," $2"," $3"," $4}')$extra,$totaltime"
+			newline="$(echo "$today" | awk -F',' '{print $1"," $2"," $3"," $4}'),$extra,$totaltime"
 		fi
 
 		sed "s/$today/$newline/g" < "$timefile" >"$timefile.aux" &&
