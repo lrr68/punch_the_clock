@@ -1,4 +1,4 @@
-# punch_the_clock
+# punch\_the\_clock
 Shell script for keeping track of work hours.
 Stores date, login time, time on breaks, logout time, extra hours worked and total time worked in a csv file specified by $TIMEFILE.
 Set this variable in the script accordingly to your preferences.
@@ -54,3 +54,6 @@ punch_clock resume;
 punch_clock left;
 04:20 left
 ```
+
+# TODO:
++ fix left command calculation for when working extra hours
